@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+python-multipart
+transformers
+torch
+torchvision
+Pillow
+opencv-python-headless
+librosa
+soundfile
+openai-whisper
+numpy
+spacy
+wikipedia-api
+python-dotenv
+scikit-learn
