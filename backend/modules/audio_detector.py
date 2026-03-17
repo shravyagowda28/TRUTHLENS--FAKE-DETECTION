@@ -8,8 +8,12 @@ print("Audio model ready.")
 
 
 def find_splice_points(y, sr):
-    rms = librosa.feature.rms(y=y, frame_length=2048, hop_length=512)[0]
-    times = librosa.frames_to_time(range(len(rms)), sr=sr, hop_length=512)
+    rms = librosa.feature.rms(
+        y=y, frame_length=2048, hop_length=512
+    )[0]
+    times = librosa.frames_to_time(
+        range(len(rms)), sr=sr, hop_length=512
+    )
     splice_times = []
     for i in range(2, len(rms) - 2):
         before = np.mean(rms[max(0, i-3):i])
@@ -24,7 +28,9 @@ def find_splice_points(y, sr):
 
 
 def count_breath_pauses(y, sr):
-    rms = librosa.feature.rms(y=y, frame_length=2048, hop_length=512)[0]
+    rms = librosa.feature.rms(
+        y=y, frame_length=2048, hop_length=512
+    )[0]
     threshold = np.mean(rms) * 0.05
     pause_count = 0
     in_pause = False
@@ -39,7 +45,9 @@ def count_breath_pauses(y, sr):
 
 def check_voice_naturalness(y, sr):
     artificial_score = 0
-    flatness = float(np.mean(librosa.feature.spectral_flatness(y=y)))
+    flatness = float(
+        np.mean(librosa.feature.spectral_flatness(y=y))
+    )
     if flatness > 0.02:
         artificial_score += 40
     try:
@@ -140,7 +148,7 @@ def analyze_audio(audio_path):
         "evidence": evidence,
         "transcript": transcript,
         "what_to_check_yourself": (
-            "Listen carefully at the flagged timestamps. "
+            "Listen carefully at flagged timestamps. "
             "Notice if background sound changes suddenly."
         )
     }

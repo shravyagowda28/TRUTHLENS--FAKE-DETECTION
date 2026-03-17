@@ -7,9 +7,12 @@ from modules.image_detector import analyze_image
 from modules.audio_detector import analyze_audio
 from modules.video_detector import analyze_video
 from modules.fusion import fuse_results
+from explainer import generate_plain_explanation
 
 load_dotenv()
+
 app = FastAPI(title="TruthLens API")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -70,4 +73,11 @@ async def analyze(
         text_result, image_result,
         audio_result, video_result
     )
+
+    try:
+        final["plain_explanation"] = generate_plain_explanation(final)
+    except Exception as e:
+        print(f"Explainer error: {e}")
+        final["plain_explanation"] = None
+
     return final
