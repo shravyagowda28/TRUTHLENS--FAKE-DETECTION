@@ -8,12 +8,8 @@ print("Audio model ready.")
 
 
 def find_splice_points(y, sr):
-    rms = librosa.feature.rms(
-        y=y, frame_length=2048, hop_length=512
-    )[0]
-    times = librosa.frames_to_time(
-        range(len(rms)), sr=sr, hop_length=512
-    )
+    rms = librosa.feature.rms(y=y, frame_length=2048, hop_length=512)[0]
+    times = librosa.frames_to_time(range(len(rms)), sr=sr, hop_length=512)
     splice_times = []
     for i in range(2, len(rms) - 2):
         before = np.mean(rms[max(0, i-3):i])
@@ -28,9 +24,7 @@ def find_splice_points(y, sr):
 
 
 def count_breath_pauses(y, sr):
-    rms = librosa.feature.rms(
-        y=y, frame_length=2048, hop_length=512
-    )[0]
+    rms = librosa.feature.rms(y=y, frame_length=2048, hop_length=512)[0]
     threshold = np.mean(rms) * 0.05
     pause_count = 0
     in_pause = False
@@ -45,17 +39,13 @@ def count_breath_pauses(y, sr):
 
 def check_voice_naturalness(y, sr):
     artificial_score = 0
-    flatness = float(
-        np.mean(librosa.feature.spectral_flatness(y=y))
-    )
+    flatness = float(np.mean(librosa.feature.spectral_flatness(y=y)))
     if flatness > 0.02:
         artificial_score += 40
     try:
         f0, voiced_flag, _ = librosa.pyin(
-            y,
-            fmin=librosa.note_to_hz('C2'),
-            fmax=librosa.note_to_hz('C7'),
-            sr=sr
+            y, fmin=librosa.note_to_hz('C2'),
+            fmax=librosa.note_to_hz('C7'), sr=sr
         )
         voiced_f0 = f0[voiced_flag & ~np.isnan(f0)]
         if len(voiced_f0) > 10:
@@ -77,12 +67,32 @@ def analyze_audio(audio_path):
         duration = round(float(len(y) / sr), 1)
     except Exception as e:
         return {
-            "verdict": "ERROR",
-            "score": 0,
+            "verdict": "ERROR", "score": 0,
             "summary": f"Could not process audio: {str(e)}",
-            "evidence": [],
-            "transcript": "",
+            "evidence": [], "transcript": "",
             "what_to_check_yourself": ""
+        }
+
+    # Detect music vs speech
+    spectral_centroid = float(np.mean(
+        librosa.feature.spectral_centroid(y=y, sr=sr)
+    ))
+    is_music = spectral_centroid > 3000
+
+    if is_music:
+        return {
+            "verdict": "MUSIC DETECTED",
+            "score": 0,
+            "summary": (
+                "This appears to be a music file, not a voice recording. "
+                "Voice analysis is designed for speech recordings."
+            ),
+            "evidence": [{
+                "severity": "none",
+                "finding": "Music detected — voice clone detection does not apply to music files."
+            }],
+            "transcript": transcript,
+            "what_to_check_yourself": "For AI music detection use specialized tools."
         }
 
     splice_times = find_splice_points(y, sr)
@@ -95,9 +105,8 @@ def analyze_audio(audio_path):
         evidence.append({
             "severity": "high",
             "finding": (
-                f"Voice naturalness score: {artificial_score}% artificial. "
-                f"The frequency patterns are unnaturally consistent — "
-                f"real voices have constant natural micro-variations."
+                f"Voice naturalness: {artificial_score}% artificial. "
+                f"Frequency patterns are unnaturally consistent."
             )
         })
 
@@ -105,9 +114,8 @@ def analyze_audio(audio_path):
         evidence.append({
             "severity": "high",
             "finding": (
-                f"Audio splice detected at {t} seconds. "
-                f"Background noise changes abruptly here — "
-                f"two separate recordings were joined at this point."
+                f"Audio splice at {t}s. "
+                f"Background noise changes abruptly — two recordings joined."
             )
         })
 
@@ -115,19 +123,15 @@ def analyze_audio(audio_path):
         evidence.append({
             "severity": "high",
             "finding": (
-                f"Speaker talks for {duration} seconds with only "
-                f"{breath_count} breath pause(s). "
-                f"A real person would breathe every 8-12 seconds."
+                f"Speaker talks {duration}s with only {breath_count} breath pause(s). "
+                f"Real people breathe every 8-12 seconds."
             )
         })
 
     if not evidence:
         evidence.append({
             "severity": "none",
-            "finding": (
-                "Natural voice characteristics detected. "
-                "No synthesis artifacts found."
-            )
+            "finding": "Natural voice characteristics. No synthesis artifacts found."
         })
 
     final_score = artificial_score
@@ -141,14 +145,9 @@ def analyze_audio(audio_path):
         "score": final_score,
         "summary": (
             f"{'Synthetic voice detected' if final_score > 55 else 'Voice appears genuine'}. "
-            f"Duration: {duration}s. "
-            f"Breath pauses: {breath_count}. "
-            f"Splice points: {len(splice_times)}."
+            f"Duration: {duration}s. Breath pauses: {breath_count}."
         ),
         "evidence": evidence,
         "transcript": transcript,
-        "what_to_check_yourself": (
-            "Listen carefully at flagged timestamps. "
-            "Notice if background sound changes suddenly."
-        )
+        "what_to_check_yourself": "Listen at flagged timestamps. Notice if background sound changes."
     }
